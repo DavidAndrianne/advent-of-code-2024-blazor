@@ -1,0 +1,52 @@
+﻿@using AoC2024.Blazor.Parsers.Week1;
+@using System.Linq;
+
+@page "/Day1"
+@rendermode InteractiveServer
+
+<PageTitle>Day1</PageTitle>
+
+<h1>Historian location list difference</h1>
+
+<textarea @bind=input></textarea>
+
+<button class="btn btn-primary" @onclick="ComputeInput">Compute</button>
+
+<p role="status">Difference: @result</p>
+
+@code {
+    private string rawInput = "";
+    private string input {
+        get => rawInput;
+        set {
+            rawInput = value;
+            ComputeInput();
+        }
+    }
+    private int result = 0;
+
+    private void ComputeInput() {
+        var (list1, list2) = rawInput.ParseTwoIntColumns();
+        result = 0;
+
+        if (list1.Count() != list2.Count()) {
+            Console.WriteLine($"Column 1 has {list1.Count()} items but list 2 has {list2.Count()} items");
+            return;
+        }
+
+        // Sort input
+        list1 = list1.OrderBy(x => x)/*.Distinct()*/.ToArray();
+        list2 = list2.OrderBy(x => x)/*.Distinct()*/.ToArray();
+
+        // Calc input
+        var pairs = list1.Length < list2.Length ?  list1.Length: list2.Length;
+        for (var i = 0; i < pairs; i++)
+        {
+            result -= list1[i] > list2[i]
+                ? list2[i] - list1[i]
+                : list1[i] - list2[i];
+        }
+
+        Console.WriteLine($"result: {result}"); // 10672294 too high
+    }
+}
