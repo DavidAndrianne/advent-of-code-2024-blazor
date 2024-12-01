@@ -12,7 +12,8 @@
 
 <button class="btn btn-primary" @onclick="ComputeInput">Compute</button>
 
-<p role="status">Difference: @result</p>
+<p role="status">Difference: @difference</p>
+<p role="status">Similarity score: @score</p>
 
 @code {
     private string rawInput = "";
@@ -23,14 +24,17 @@
             ComputeInput();
         }
     }
-    private int result = 0;
+    private int difference = 0;
+    private int score = 0;
 
     private void ComputeInput() {
         var (list1, list2) = rawInput.ParseTwoIntColumns();
-        result = 0;
+
+        // Reset output
+        difference = 0; score = 0;
 
         if (list1.Count() != list2.Count()) {
-            Console.WriteLine($"Column 1 has {list1.Count()} items but list 2 has {list2.Count()} items");
+            Console.WriteLine($"Column 1 has {list1.Count()} items but Column 2 has {list2.Count()} items");
             return;
         }
 
@@ -38,15 +42,27 @@
         list1 = list1.OrderBy(x => x)/*.Distinct()*/.ToArray();
         list2 = list2.OrderBy(x => x)/*.Distinct()*/.ToArray();
 
+        Part1(list1, list2);
+        Part2(list1, list2);
+    }
+
+    private void Part1(int[] list1, int[] list2){
         // Calc input
-        var pairs = list1.Length < list2.Length ?  list1.Length: list2.Length;
+        var pairs = list1.Length < list2.Length ? list1.Length : list2.Length;
         for (var i = 0; i < pairs; i++)
         {
-            result -= list1[i] > list2[i]
+            difference -= list1[i] > list2[i]
                 ? list2[i] - list1[i]
                 : list1[i] - list2[i];
         }
 
-        Console.WriteLine($"result: {result}"); // 10672294 too high
+        Console.WriteLine($"difference: {difference}"); // 10672294 too high
+    }
+
+    private void Part2(int[] list1, int[] list2){
+        for (var i = 0; i < list1.Length; i++){
+            var count = list2.Count(x => x == list1[i]);
+            score += count * list1[i];
+        }
     }
 }
