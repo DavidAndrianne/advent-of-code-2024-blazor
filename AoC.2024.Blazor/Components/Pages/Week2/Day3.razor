@@ -1,0 +1,58 @@
+﻿@using AoC2024.Blazor.Parsers.Week2;
+@using System.Linq;
+@using AoC2024.Blazor.Extensions;
+
+@page "/Day3"
+@rendermode InteractiveServer
+
+<PageTitle>Day3</PageTitle>
+
+<h1>Tobbogan rental shop computer memory clean-up</h1>
+
+<p>
+    <input type="checkbox" @bind="areDosEnabled"><label>Do/don'ts (skips multiplications after dont's until the next do)</label>
+</p>
+<input type="text" @bind=input></input>
+
+<button class="btn btn-primary" @onclick="ComputeInput">Compute</button>
+
+<p>
+    <span>Multiplied total: @total</span>
+    <span>(when explicit 'mul(1,2)' expression)</span>
+</p>
+
+@foreach (var result in verboseResults)
+{
+    <p>@result</p>
+}
+
+@code {
+    private string rawInput = @"xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))";
+    private string input {
+        get => rawInput;
+        set {
+            rawInput = value;
+            ComputeInput();
+        }
+    }
+    private List<string> verboseResults = new();
+    private int total = 0;
+    private bool areDosEnabled = true;
+
+    private void ComputeInput() {
+        // Reset output
+        total = 0; verboseResults = new();
+
+        var expressions = areDosEnabled
+            ? rawInput.ParseDoMultitudes()
+            : rawInput.ParseExpression(@"mul\(\d+,\d+\)");
+        foreach (var expression in expressions)
+        {
+            // acquire digits
+            var ints = expression.ParseInts().ToArray();
+            total += ints[0] * ints[1];
+            verboseResults.Add($"{expression} = {ints[0] * ints[1]}");
+        }
+
+    }
+}

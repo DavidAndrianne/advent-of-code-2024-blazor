@@ -52,109 +52,78 @@
 
         // Reset output
         safeCount = 0; verboseResults = new();
-        Part1(reports);
-    }
 
-    private void Part1(IEnumerable<IEnumerable<int>> reports){
         foreach (var report in reports)
         {
             var reportArr = report.ToArray();
             CheckIfSafe(reportArr, reports.Count() < 1001, isProblemDampenerEnabled);
         }
-        
+
         Console.WriteLine($"safeCount: {safeCount}"); // P1 391 too high, P2 426 too low, 473 too high
     }
 
     private bool CheckIfSafe(int[] reportArr, bool isVerbose, bool isProblemDampenerEnabled)
     {
         var isAscending = reportArr[0] < reportArr[1];
+
         for (var i = 1; i < reportArr.Length; i++)
         {
             var diff = isAscending
                 ? reportArr[i] - reportArr[i - 1]
                 : reportArr[i - 1] - reportArr[i];
 
-            if (diff == 0)
+            if (diff >= 1 && diff <= 3)
+                continue;
+
+            if (isProblemDampenerEnabled)
             {
-                if (isProblemDampenerEnabled)
+                int? dampenedIndex = TryToDampen(reportArr, i);
+                if (dampenedIndex.HasValue)
                 {
-                    int? dampenedIndex =
-                    // try without prior value
-                    CheckIfSafe(reportArr.Take(i - 1).Concat(reportArr.Skip(i)).ToArray(), false, false)
-                        ? i-1
-                        // try without current value
-                        : CheckIfSafe(reportArr.Take(i).Concat(reportArr.Skip(i+1)).ToArray(), false, false)
-                            ? i
-                            // try without 2 values back
-                            : i >= 2 && CheckIfSafe(reportArr.Take(i-2).Concat(reportArr.Skip(i -1)).ToArray(), false, false)
-                                ? i-2
-                                : null;
-                    if(dampenedIndex.HasValue){
-                        var dampTxt = dampenedIndex.HasValue ? $"by removing level {dampenedIndex}({reportArr[dampenedIndex.Value]})" : "";
-                        if (isVerbose) verboseResults.Add($"{reportArr.ToJson()}: SAFE {dampTxt}");
-                        return true;
-                    }
+                    var dampTxt = dampenedIndex.HasValue ? $"by removing level {dampenedIndex}({reportArr[dampenedIndex.Value]})" : "";
+                    if (isVerbose) verboseResults.Add($"{reportArr.ToJson()}: SAFE {dampTxt}");
+                    return true;
                 }
-                if (isVerbose) verboseResults.Add($"{reportArr.ToJson()}: NOT SAFE because {reportArr[i - 1]} {reportArr[i]} is neither increase or decrease!");
-                return false;
             }
-            if (diff > 3)
-            {
-                if (isProblemDampenerEnabled)
-                {
-                    int? dampenedIndex =
-                    // try without prior value
-                    CheckIfSafe(reportArr.Take(i - 1).Concat(reportArr.Skip(i)).ToArray(), false, false)
-                        ? i - 1
-                        // try without current value
-                        : CheckIfSafe(reportArr.Take(i).Concat(reportArr.Skip(i + 1)).ToArray(), false, false)
-                            ? i
-                            // try without 2 values back
-                            : i >= 2 && CheckIfSafe(reportArr.Take(i - 2).Concat(reportArr.Skip(i - 1)).ToArray(), false, false)
-                                ? i - 2
-                                : null;
-                    if (dampenedIndex.HasValue)
-                    {
-                        var dampTxt = dampenedIndex.HasValue ? $"by removing level {dampenedIndex}({reportArr[dampenedIndex.Value]})" : "";
-                        if (isVerbose) verboseResults.Add($"{reportArr.ToJson()}: SAFE {dampTxt}");
-                        return true;
-                    }
-                }
-                if (isVerbose) verboseResults.Add($"{reportArr.ToJson()}: NOT SAFE because {reportArr[i - 1]} {reportArr[i]} diff more than 3!");
-                return false;
-            }
-            if (diff < 1)
-            {
-                if (isProblemDampenerEnabled)
-                {
-                    int? dampenedIndex =
-                    // try without prior value
-                    CheckIfSafe(reportArr.Take(i - 1).Concat(reportArr.Skip(i)).ToArray(), false, false)
-                        ? i - 1
-                        // try without current value
-                        : CheckIfSafe(reportArr.Take(i).Concat(reportArr.Skip(i + 1)).ToArray(), false, false)
-                            ? i
-                            // try without 2 values back
-                            : i >= 2 && CheckIfSafe(reportArr.Take(i - 2).Concat(reportArr.Skip(i - 1)).ToArray(), false, false)
-                                ? i - 2
-                                : null;
-                    if (dampenedIndex.HasValue)
-                    {
-                        var dampTxt = dampenedIndex.HasValue ? $"by removing level {dampenedIndex}({reportArr[dampenedIndex.Value]})" : "";
-                        if (isVerbose) verboseResults.Add($"{reportArr.ToJson()}: SAFE {dampTxt}");
-                        return true;
-                    }
-                }
-                if (isVerbose){
-                    var direction = isAscending ? "increasing" : "decreasing";
-                    var inverseDirection = isAscending ? "decreasing" : "increasing";
-                    verboseResults.Add($"{reportArr.ToJson()}: NOT SAFE because {reportArr[i - 1]} {reportArr[i]} was {direction} now {inverseDirection}!");
-                }
-                return false;
-            }
+
+            if (isVerbose)
+                LogUnsafeResult(reportArr, i, isAscending, diff);
+            return false;
         }
+
         if (isVerbose) verboseResults.Add($"{reportArr.ToJson()}: SAFE");
         safeCount++;
         return true;
+    }
+
+    private int? TryToDampen(int[] reportArr, int index)
+    {
+        // Try without prior value
+        if (CheckIfSafe(reportArr.Take(index - 1).Concat(reportArr.Skip(index)).ToArray(), false, false))
+            return index - 1;
+
+        // Try without current value
+        if (CheckIfSafe(reportArr.Take(index).Concat(reportArr.Skip(index + 1)).ToArray(), false, false))
+            return index;
+
+        // Try without 2 values back
+        if (index >= 2 && CheckIfSafe(reportArr.Take(index - 2).Concat(reportArr.Skip(index - 1)).ToArray(), false, false))
+            return index - 2;
+
+        return null;
+    }
+
+    private void LogUnsafeResult(int[] reportArr, int index, bool isAscending, int diff)
+    {
+        if (diff == 0)
+        {
+            var direction = isAscending ? "increasing" : "decreasing";
+            var inverseDirection = isAscending ? "decreasing" : "increasing";
+            verboseResults.Add($"{reportArr.ToJson()}: NOT SAFE because {reportArr[index - 1]} {reportArr[index]} was {direction} now {inverseDirection}!");
+        }
+        else if (diff > 3)
+            verboseResults.Add($"{reportArr.ToJson()}: NOT SAFE because {reportArr[index - 1]} {reportArr[index]} diff more than 3!");
+        else if (diff < 1)
+            verboseResults.Add($"{reportArr.ToJson()}: NOT SAFE because {reportArr[index - 1]} {reportArr[index]} is neither increase or decrease!");
     }
 }
