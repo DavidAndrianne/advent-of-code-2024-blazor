@@ -1,0 +1,227 @@
+﻿@using AoC2024.Blazor.Parsers.Week2;
+@using System.Linq;
+@using AoC2024.Blazor.Extensions;
+
+@page "/Day4"
+@rendermode InteractiveServer
+
+<PageTitle>Day4</PageTitle>
+
+<h1>Xmas Crossword puzzle</h1>
+<textarea @bind=input></textarea>
+
+<button class="btn btn-primary" @onclick="ComputeInput">Compute</button>
+
+<span>Xmas count: @total</span>
+<AoC._2024.Blazor.Components.Grids.CharGrid Content="verboseResults"></AoC._2024.Blazor.Components.Grids.CharGrid>
+
+@code {
+    private string rawInput = @"MMMSXXMASM
+MSAMXMSMSA
+AMXSXMAAMM
+MSAMASMSMX
+XMASAMXAMM
+XXAMMXXAMA
+SMSMSASXSS
+SAXAMASAAA
+MAMMMXMMMM
+MXMXAXMASX";
+    private string input {
+        get => rawInput;
+        set {
+            rawInput = value;
+            ComputeInput();
+        }
+    }
+    private char[][] verboseResults = [[]];
+    private int total = 0;
+
+    private const string Xmas = "XMAS";
+
+    private void ComputeInput()
+    {
+        // Reset output
+        total = 0; // P1: 2544 too low
+
+        var grid = rawInput.Split("\n")
+            .Select(line => line.Where(c => c != '\r').ToArray())
+            .ToArray();
+
+        var mask = grid.Select(row => row.Select(c => '.').ToArray()).ToArray();
+
+        var rowCount = grid.Length;
+        var colCount = grid.First().Length;
+
+        for (var rowI = 0; rowI < grid.Length; rowI++)
+        {
+            for (var colI = 0; colI < grid[rowI].Length; colI++)
+            {
+                var isHorizontal = true;
+                var isReverseHor = true;
+                var isVertical = true;
+                var isReverseVert = true;
+                var isTopLeft = true;
+                var isTopRight = true;
+                var isBottomLeft = true;
+                var isBottomRight = true;
+
+                // Check each direction for matching pattern
+                for (var pivot = 0; pivot < Xmas.Length; pivot++)
+                {
+                    // Check bounds before accessing grid indices
+                    var canMoveToRight = colI + pivot < colCount;
+                    var canMoveToLeft = colI - pivot >= 0;
+                    var canMoveToBottom = rowI + pivot < rowCount;
+                    var canMoveToTop = rowI - pivot >= 0;
+
+                    // Horizontal (right)
+                    if (canMoveToRight)
+                    {
+                        if (grid[rowI][colI + pivot] != Xmas[pivot])
+                            isHorizontal = false;
+                    }
+                    else
+                    {
+                        isHorizontal = false;
+                    }
+
+                    // Reverse Horizontal (left)
+                    if (canMoveToLeft)
+                    {
+                        if (grid[rowI][colI - pivot] != Xmas[pivot])
+                            isReverseHor = false;
+                    }
+                    else
+                    {
+                        isReverseHor = false;
+                    }
+
+                    // Vertical (down)
+                    if (canMoveToBottom)
+                    {
+                        if (grid[rowI + pivot][colI] != Xmas[pivot])
+                            isVertical = false;
+                    }
+                    else
+                    {
+                        isVertical = false;
+                    }
+
+                    // Reverse Vertical (up)
+                    if (canMoveToTop)
+                    {
+                        if (grid[rowI - pivot][colI] != Xmas[pivot])
+                            isReverseVert = false;
+                    }
+                    else
+                    {
+                        isReverseVert = false;
+                    }
+
+                    // Diagonal Top-Left
+                    if (canMoveToTop && canMoveToLeft)
+                    {
+                        if (grid[rowI - pivot][colI - pivot] != Xmas[pivot])
+                            isTopLeft = false;
+                    }
+                    else
+                    {
+                        isTopLeft = false;
+                    }
+
+                    // Diagonal Top-Right
+                    if (canMoveToTop && canMoveToRight)
+                    {
+                        if (grid[rowI - pivot][colI + pivot] != Xmas[pivot])
+                            isTopRight = false;
+                    }
+                    else
+                    {
+                        isTopRight = false;
+                    }
+
+                    // Diagonal Bottom-Left
+                    if (canMoveToBottom && canMoveToLeft)
+                    {
+                        if (grid[rowI + pivot][colI - pivot] != Xmas[pivot])
+                            isBottomLeft = false;
+                    }
+                    else
+                    {
+                        isBottomLeft = false;
+                    }
+
+                    // Diagonal Bottom-Right
+                    if (canMoveToBottom && canMoveToRight)
+                    {
+                        if (grid[rowI + pivot][colI + pivot] != Xmas[pivot])
+                            isBottomRight = false;
+                    }
+                    else
+                    {
+                        isBottomRight = false;
+                    }
+                }
+
+                // Count valid patterns and update the mask
+                if (isHorizontal)
+                {
+                    total++;
+                    for (var pivot = 0; pivot < Xmas.Length; pivot++)
+                        mask[rowI][colI + pivot] = grid[rowI][colI + pivot];
+                }
+
+                if (isReverseHor)
+                {
+                    total++;
+                    for (var pivot = 0; pivot < Xmas.Length; pivot++)
+                        mask[rowI][colI - pivot] = grid[rowI][colI - pivot];
+                }
+
+                if (isVertical)
+                {
+                    total++;
+                    for (var pivot = 0; pivot < Xmas.Length; pivot++)
+                        mask[rowI + pivot][colI] = grid[rowI + pivot][colI];
+                }
+
+                if (isReverseVert)
+                {
+                    total++;
+                    for (var pivot = 0; pivot < Xmas.Length; pivot++)
+                        mask[rowI - pivot][colI] = grid[rowI - pivot][colI];
+                }
+
+                if (isTopLeft)
+                {
+                    total++;
+                    for (var pivot = 0; pivot < Xmas.Length; pivot++)
+                        mask[rowI - pivot][colI - pivot] = grid[rowI - pivot][colI - pivot];
+                }
+
+                if (isTopRight)
+                {
+                    total++;
+                    for (var pivot = 0; pivot < Xmas.Length; pivot++)
+                        mask[rowI - pivot][colI + pivot] = grid[rowI - pivot][colI + pivot];
+                }
+
+                if (isBottomLeft)
+                {
+                    total++;
+                    for (var pivot = 0; pivot < Xmas.Length; pivot++)
+                        mask[rowI + pivot][colI - pivot] = grid[rowI + pivot][colI - pivot];
+                }
+
+                if (isBottomRight)
+                {
+                    total++;
+                    for (var pivot = 0; pivot < Xmas.Length; pivot++)
+                        mask[rowI + pivot][colI + pivot] = grid[rowI + pivot][colI + pivot];
+                }
+            }
+        }
+
+        verboseResults = mask;
+    }
+}

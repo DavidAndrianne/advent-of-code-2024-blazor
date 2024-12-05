@@ -1,0 +1,14 @@
+﻿<table style="font-size: 12px">
+    @foreach(var row in Content){
+        <tr>
+            @foreach(var character in row){
+                <td>@character</td>
+            }
+        </tr>
+    }
+</table>
+
+@code {
+    [Parameter]
+    public char[][] Content { get; set; } = [[]];
+}

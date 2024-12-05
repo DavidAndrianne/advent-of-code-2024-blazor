@@ -9,4 +9,7 @@ public static class JsonExtensions
 
     public static string ToJson(this object obj)
         => JsonSerializer.Serialize(obj, Options);
+    
+    public static T? ToJson<T>(this string obj)
+        => JsonSerializer.Deserialize<T>(obj, Options);
 }
