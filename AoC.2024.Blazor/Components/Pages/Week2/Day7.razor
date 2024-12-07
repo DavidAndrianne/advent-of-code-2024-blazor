@@ -1,0 +1,154 @@
+﻿@using AoC2024.Blazor.Parsers.Week2;
+@using System.Linq;
+@using AoC2024.Blazor.Extensions;
+@using AoC2024.Blazor.Models
+
+@page "/Day7"
+@rendermode InteractiveServer
+
+<PageTitle>Day7</PageTitle>
+
+<h1>Rope Bridge Simulator</h1>
+<p>
+    <span># knots (1 default)</span>
+    <input type="number" @bind=knotsCount/>
+</p>
+<p>
+    <span># moves out of @totalMoves (0 executes all)</span>
+    <input type="number" @bind=maxMoves/>
+</p>
+<p>
+    <span>Input</span>
+    <textarea @bind=input></textarea>
+</p>
+
+<button class="btn btn-primary" @onclick="ComputeInput">Compute</button>
+
+<p>Positions count: @total</p>
+<AoC._2024.Blazor.Components.Grids.CharGrid Content="verboseResults"></AoC._2024.Blazor.Components.Grids.CharGrid>
+
+@code {
+    private string rawInput = @"R 4
+U 4
+L 3
+D 1
+R 4
+D 1
+L 5
+R 2";
+    private string input {
+        get => rawInput;
+        set {
+            rawInput = value;
+            ComputeInput();
+        }
+    }
+    private char[][] verboseResults = [[]];
+    private List<(int, int)> visited = [];
+    private int _maxMoves = 0;
+
+    private int maxMoves
+    {
+        get => _maxMoves;
+        set
+        {
+            _maxMoves = value;
+            ComputeInput();
+        }
+    }
+    private int total = 0;
+    private int totalMoves = 0;
+    private int knotsCount = 1;
+    private (CarthesianCoordinate Head, CarthesianCoordinate Tail)[] Knots = [];
+
+    private void ComputeInput()
+    {
+        // Reset output
+        total = 0; visited = [(0,0)];
+
+        var moves = rawInput.ParseMoves();
+        totalMoves = moves.Sum(m => m.Count);
+        
+        var head = new CarthesianCoordinate(0, 0);
+        List<(CarthesianCoordinate Head, CarthesianCoordinate Tail)> knots = [(head, new CarthesianCoordinate(0, 0))];
+        for(var i = 1; i < knotsCount; i++){
+            var knot = new CarthesianCoordinate(0, 0);
+            knots.Add((knots[i-1].Tail, knot));
+        }
+        Knots = knots.ToArray();
+
+        var movesCompleted = 0;
+        foreach(var move in moves)
+            for (var i = 0; i < move.Count && (maxMoves == 0 || movesCompleted < maxMoves); i++)
+            {
+                MoveHeadAndMaybeTails(move);
+                movesCompleted++;
+            }
+
+        total = visited.Distinct().Count(); // P2 : 2483 too low
+        DrawGrid();
+    }
+
+    private void DrawGrid()
+    {
+        var head = Knots[0].Head;
+        var start = new CarthesianCoordinate(0, 0);
+        var minX = visited.MinBy(x => x.Item1).Item1;
+        var maxX = visited.MaxBy(x => x.Item1).Item1;
+        var minY = visited.MinBy(x => x.Item2).Item2;
+        var maxY = visited.MaxBy(x => x.Item2).Item2;
+        
+        if (minX > Knots.Select(x => x.Head.Row).Min()) minX = Knots.Select(x => x.Head.Row).Min();
+        if (minY > Knots.Select(x => x.Head.Col).Min()) minY = Knots.Select(x => x.Head.Col).Min();
+        if (maxX < Knots.Select(x => x.Head.Row).Max()) maxX = Knots.Select(x => x.Head.Row).Max();
+        if (maxY < Knots.Select(x => x.Head.Col).Max()) maxY = Knots.Select(x => x.Head.Col).Max();
+        
+        var cols = maxY - minY;
+        List<char[]> grid = [];
+        for (var x = minX; x <= maxX; x++)
+        {
+            var row = new string('.', cols+1).ToArray(); 
+            grid.Add(row);
+        }
+
+        foreach (var visit in visited)
+            markGrid(grid, minX, minY, visit.Item1, visit.Item2, '#');
+        markGrid(grid, minX, minY, start, 'S');
+        for(var i = 0; i < Knots.Length; i++)
+            markGrid(grid, minX, minY, Knots[i].Head, i.ToString()[0]);
+        markGrid(grid, minX, minY, Knots.Last().Tail, 'T');
+        markGrid(grid, minX, minY, head, 'H');
+        
+        verboseResults = grid.ToArray();
+    }
+
+    private void markGrid(List<char[]> grid, int minX, int minY, CarthesianCoordinate coord, char c)
+        => markGrid(grid, minX, minY, coord.Row, coord.Col, c);
+    private void markGrid(List<char[]> grid, int minX, int minY, int x, int y, char c)
+        => grid[x-minX][y-minY] = c;
+
+    private void MoveHeadAndMaybeTails((Direction Direction, int Count) move)
+    {
+        Knots[0].Head.Move(move.Direction);
+        foreach (var knot in Knots)
+        {
+            var head = knot.Head;
+            var tail = knot.Tail;
+            
+            if (!head.IsMoreThanTwoAwayVertically(tail) && !head.IsMoreThanTwoAwayHorizontally(tail)) continue;
+            
+            if (head.IsToTheRight(tail))
+                tail.MoveRight();
+            if (head.IsToTheLeft(tail))
+                tail.MoveLeft();
+            if (head.IsAbove(tail))
+                tail.MoveUp();
+            if (head.IsBelow(tail))
+                tail.MoveDown();
+            
+            // only track the last tail
+            if(tail == Knots.Last().Tail)
+                visited.Add((tail.Row, tail.Col));
+        }
+    }
+}
