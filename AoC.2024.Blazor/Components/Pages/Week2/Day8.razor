@@ -1,0 +1,116 @@
+﻿@using AoC2024.Blazor.Parsers.Week2;
+@using System.Linq;
+@using AoC2024.Blazor.Extensions;
+@using AoC2024.Blazor.Models
+
+@page "/Day8"
+@rendermode InteractiveServer
+
+<PageTitle>Day8</PageTitle>
+
+<h1>Resonant Collinearity Satellite Dishes</h1>
+<p>
+    <input type="checkbox" @bind="isApplyingResonantHarmonics"/>
+    <span>Resonant harmonics</span>
+</p>
+<p>
+    <span>Input</span>
+    <textarea @bind=input></textarea>
+</p>
+
+<button class="btn btn-primary" @onclick="ComputeInput">Compute</button>
+
+<p>Positions count: @total</p>
+<AoC._2024.Blazor.Components.Grids.CharGrid Content="verboseResults"></AoC._2024.Blazor.Components.Grids.CharGrid>
+
+@code {
+    private string rawInput = @"............
+........0...
+.....0......
+.......0....
+....0.......
+......A.....
+............
+............
+........A...
+.........A..
+............
+............";
+    private string input {
+        get => rawInput;
+        set {
+            rawInput = value;
+            ComputeInput();
+        }
+    }
+
+    private bool isApplyingResonantHarmonics = true;
+    private char[][] verboseResults = [[]];
+    private List<(char Char, CarthesianCoordinate XY)> antinodes = [];
+    
+    private int total = 0;
+
+    private void ComputeInput()
+    {
+        // Reset output
+        total = 0; antinodes = []; // P2 : > 856
+        
+        var grid = rawInput.ParseCharArray();
+        var sattelites = IdentifySattelites(grid, out var maxRow, out var maxCol);
+
+        foreach (var sattelite in sattelites)
+        {
+            LinkSattelites(sattelites, sattelite, maxRow, maxCol);
+        }
+
+        // draw antinodes
+        foreach (var antinode in antinodes)
+            if(grid[antinode.XY.Row][antinode.XY.Col] == '.') grid[antinode.XY.Row][antinode.XY.Col] = '#';
+
+        // unique
+        total = antinodes.Select(x => $"{x.XY.Row}|{x.XY.Col}").Distinct().Count();
+        verboseResults = grid;
+    }
+
+    private void LinkSattelites(
+        IEnumerable<(char Char, CarthesianCoordinate XY)> sattelites, 
+        (char Char, CarthesianCoordinate XY) sattelite,
+        int maxRow,
+        int maxCol,
+        IEnumerable<(char Char, CarthesianCoordinate XY)>? except = null)
+    {
+        var newNodes = sattelites.Where(x => x.Char == sattelite.Char && sattelite != x)
+            .Select(other => (other.Char, sattelite.XY.Mirror(other.XY)))
+            // Within bounds
+            .Where(node => node.Item2.Row <= maxRow && node.Item2.Row >= 0
+                                                 && node.Item2.Col <= maxCol && node.Item2.Col >= 0)
+            .Where(x => except == null || !except.Any(y => x.Item2.Col == y.XY.Col && x.Item2.Row == y.XY.Row))
+            .ToArray();
+        antinodes.AddRange(newNodes);
+
+        if (isApplyingResonantHarmonics)
+        {
+            foreach(var newNode in newNodes)
+            {
+                except = except != null ? except.Concat(newNodes) : newNodes;
+                LinkSattelites([sattelite], newNode, maxRow, maxCol, except);
+                LinkSattelites([newNode], sattelite, maxRow, maxCol, except);
+            }
+        }
+    }
+
+    private static List<(char Char, CarthesianCoordinate XY)> IdentifySattelites(char[][] grid, out int maxRow, out int maxCol)
+    {
+        List<(char Char, CarthesianCoordinate XY)> sattelites = new();
+        maxRow = grid.Length-1;
+        maxCol = grid.First().Length-1;
+        for(var rowI = 0; rowI <= maxRow; rowI++)
+        for (var colI = 0; colI <= maxCol; colI++)
+        {
+            char c = grid[rowI][colI];
+            if(c != '.') sattelites.Add((c, new CarthesianCoordinate(rowI, colI)));
+        }
+
+        return sattelites;
+    }
+}

@@ -32,4 +32,14 @@ public class CarthesianCoordinate(int row, int col)
     public void MoveDown() => Row++;
     public void MoveLeft() => Col--;
     public void MoveRight() => Col++;
+    
+    // (2, 1), (3, 2) => (1, 0)
+    // (3, 2), (2, 1) => (4, 3)
+    // (0, 6), (1, 1) => (-1, 11)
+    public CarthesianCoordinate Mirror(CarthesianCoordinate coordinate)
+    {
+        var row = Row - (coordinate.Row - Row);
+        var col = Col - (coordinate.Col - Col);
+        return new(row, col);
+    }
 }
