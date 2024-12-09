@@ -13,6 +13,12 @@ public static class Day3Parser
             .Select(x => x.ToString())
             .ToArray();
 
+    public static IEnumerable<int> ParseDigits(this string input)
+        => new Regex(@"\d")
+            .Matches(input)
+            .Select(x => int.Parse(x.ToString()))
+            .ToArray();
+    
     public static IEnumerable<int> ParseInts(this string input)
         => new Regex(@"\d+")
             .Matches(input)
