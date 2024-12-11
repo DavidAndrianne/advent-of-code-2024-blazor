@@ -21,17 +21,17 @@ public class CarthesianCoordinate(int row, int col)
 
     private static Dictionary<Direction, Action<CarthesianCoordinate>> moves = new()
     {
-        { Direction.Up, c => c.MoveUp() },
-        { Direction.Down, c => c.MoveDown() },
-        { Direction.Left, c => c.MoveLeft() },
-        { Direction.Right, c => c.MoveRight() }
+        { Direction.Up, c => c.ShiftUp() },
+        { Direction.Down, c => c.ShiftDown() },
+        { Direction.Left, c => c.ShiftLeft() },
+        { Direction.Right, c => c.ShiftRight() }
     };
     public void Move(Direction direction) => moves[direction].Invoke(this);
 
-    public void MoveUp() => Row--;
-    public void MoveDown() => Row++;
-    public void MoveLeft() => Col--;
-    public void MoveRight() => Col++;
+    public void ShiftUp() => Row--;
+    public void ShiftDown() => Row++;
+    public void ShiftLeft() => Col--;
+    public void ShiftRight() => Col++;
     
     // (2, 1), (3, 2) => (1, 0)
     // (3, 2), (2, 1) => (4, 3)

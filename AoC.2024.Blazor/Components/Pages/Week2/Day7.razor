@@ -138,13 +138,13 @@ R 2";
             if (!head.IsMoreThanTwoAwayVertically(tail) && !head.IsMoreThanTwoAwayHorizontally(tail)) continue;
             
             if (head.IsToTheRight(tail))
-                tail.MoveRight();
+                tail.ShiftRight();
             if (head.IsToTheLeft(tail))
-                tail.MoveLeft();
+                tail.ShiftLeft();
             if (head.IsAbove(tail))
-                tail.MoveUp();
+                tail.ShiftUp();
             if (head.IsBelow(tail))
-                tail.MoveDown();
+                tail.ShiftDown();
             
             // only track the last tail
             if(tail == Knots.Last().Tail)
