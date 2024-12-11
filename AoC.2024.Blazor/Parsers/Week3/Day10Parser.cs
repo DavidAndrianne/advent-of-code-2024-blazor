@@ -7,7 +7,7 @@ namespace AoC2024.Blazor.Parsers.Week3;
 
 public static class Day10Parser
 {
-    public static int[][] ParseDigitGrid(this string input)
+    public static int[][] ParseDigitDoubleIntArray(this string input)
         => input.SplitLines()
             .Select(line => line.ParseDigits().ToArray())
             .ToArray();

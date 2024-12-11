@@ -1,0 +1,101 @@
+﻿@using AoC2024.Blazor.Parsers.Week3;
+@using System.Linq;
+@using System.Text
+@using System.Text.RegularExpressions
+@using AoC2024.Blazor.Extensions;
+@using AoC2024.Blazor.Models
+@using AoC2024.Blazor.Parsers.Week2
+
+@page "/Day11"
+@rendermode InteractiveServer
+
+<PageTitle>Day11</PageTitle>
+
+<h1>Plutonian Pebbles - Blink simulator</h1>
+<p>
+    <input type="number" min="1" max="75" @bind=blinkCount style="max-width: 40px"/> <label>Blinks</label>
+</p>
+@* <p> *@
+@*     <input type="checkbox" @bind=IsRatingDistinctHikingTrails/> <label>Rate distinct hiking trails </label> *@
+@* </p> *@
+<p>
+    <label>Input</label>
+    <input type="text" @bind=input/>
+</p>
+
+<button class="btn btn-primary" @onclick="ComputeInput">Compute</button>
+
+<p>Stone count: <b>@total</b></p>
+<pre>
+    @foreach (var line in verboseResults)
+    {
+        @line
+    }
+</pre>
+
+@code {
+    private string rawInput = @"125 17";
+    private string input {
+        get => rawInput;
+        set {
+            rawInput = value;
+            ComputeInput();
+        }
+    }
+
+    private bool IsRatingDistinctHikingTrails = true;
+    private int blinkCount = 75;
+    private List<string> verboseResults = [];
+    private double total = 0;
+
+    private void ComputeInput()
+    {
+        // Reset output
+        total = 0; verboseResults = [];
+        
+        var stones = rawInput.ParseInts()
+            .GroupBy(value => (double)value)
+            .ToDictionary(x => x.Key, x => (double)x.Count());
+
+        var endStones = MutateOrSplitStones(stones);
+        total = endStones.Select(x => x.Value).Sum();
+    }
+
+    private Dictionary<double, double> MutateOrSplitStones(Dictionary<double, double> stoneCounts)
+    {
+        Dictionary<double, List<double>> blinkCache = new()
+        {
+            { 0, [1] }
+        };
+        
+        for (var blink = 0; blink < blinkCount; blink++)
+        {
+            verboseResults.Add(stoneCounts.ToJson());
+            Dictionary<double, double> newStoneCount = new();
+            foreach (var s in stoneCounts)
+            {
+                if (!blinkCache.ContainsKey(s.Key))
+                    blinkCache[s.Key] = s.Key.ToString().Length % 2 == 0
+                        ? Split(s.Key)
+                        : [s.Key * 2024];
+                
+                foreach (var newStone in blinkCache[s.Key])
+                    if (newStoneCount.ContainsKey(newStone))
+                        newStoneCount[newStone] += s.Value;
+                    else newStoneCount[newStone] = s.Value;
+            }
+
+            stoneCounts = newStoneCount;
+        }
+        return stoneCounts;
+    }
+
+    private List<double> Split(double stone)
+    {
+        var (stone1, stone2) = stone.ToString()
+            .SplitEvenly();
+        return [double.Parse(stone1), double.Parse(stone2)];
+    }
+
+    private string Snapshot(IEnumerable<double> stones) => string.Join(' ', stones.Select(s => s.ToString()))+"\n";
+}

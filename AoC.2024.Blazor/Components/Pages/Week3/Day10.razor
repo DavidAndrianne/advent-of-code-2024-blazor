@@ -22,7 +22,7 @@
 
 <button class="btn btn-primary" @onclick="ComputeInput">Compute</button>
 
-<p>Checksum: <b>@total</b></p>
+<p>Rating: <b>@total</b></p>
 @foreach(var grid in verboseResults){
     <p>
         <AoC._2024.Blazor.Components.Grids.CharGrid Content="grid"></AoC._2024.Blazor.Components.Grids.CharGrid>
@@ -55,7 +55,7 @@
         // Reset output
         total = 0; verboseResults = [];
         
-        var sourceGrid = rawInput.ParseDigitGrid();
+        var sourceGrid = rawInput.ParseDigitDoubleIntArray();
 
         var trailHeads = sourceGrid.SelectMany((row, rowIndex) => row.Select((_, colIndex) => new GridCell<int>(rowIndex, colIndex, sourceGrid)))
             .Where(cell => cell.Value == 0)

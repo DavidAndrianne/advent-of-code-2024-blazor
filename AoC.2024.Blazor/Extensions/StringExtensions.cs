@@ -5,6 +5,14 @@ public static class StringExtensions
     public static IEnumerable<string> SplitLines(this string input)
         => input.Split('\n')
             .Select(x => new string(x.Where(c => c != '\r').ToArray()));
+
+    public static (string Part1, string Part2) SplitEvenly(this string input)
+    {
+        var halfIndex = input.Length / 2;
+        var part1 = input.Substring(0, halfIndex);
+        var part2 = input.Substring(halfIndex);
+        return (part1, part2);
+    }
     
     public static int? FirstIndexOf(this string? input, Func<char, bool> predicate)
         => input?.IndexOf(input.First(predicate));
