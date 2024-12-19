@@ -81,7 +81,7 @@
             trailEnds.Add(currentCell.ToString());
             return [visited];
         }
-        var nextTrailSteps = currentCell.AdjacentCells()
+        var nextTrailSteps = currentCell.AdjacentCellsWithinBounds()
             .Where(x => x.Value == currentCell.Value + 1);
 
         return nextTrailSteps.SelectMany(step => MapTrails(step, visited.Concat([step]).ToArray(), trailEnds))

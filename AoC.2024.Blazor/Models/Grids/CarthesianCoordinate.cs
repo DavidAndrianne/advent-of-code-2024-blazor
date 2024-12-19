@@ -33,6 +33,11 @@ public class CarthesianCoordinate(int row, int col)
     public void ShiftLeft() => Col--;
     public void ShiftRight() => Col++;
     
+    public virtual CarthesianCoordinate Up => new CarthesianCoordinate(Row - 1, Col);
+    public virtual CarthesianCoordinate Down => new CarthesianCoordinate(Row + 1, Col);
+    public virtual CarthesianCoordinate Left => new(Row, Col - 1);
+    public virtual CarthesianCoordinate Right => new(Row, Col + 1);
+    
     // (2, 1), (3, 2) => (1, 0)
     // (3, 2), (2, 1) => (4, 3)
     // (0, 6), (1, 1) => (-1, 11)

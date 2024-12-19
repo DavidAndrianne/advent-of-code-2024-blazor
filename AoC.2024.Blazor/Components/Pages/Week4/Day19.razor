@@ -1,0 +1,67 @@
+﻿@using System.Linq;
+@using System.Text
+@using System.Text.RegularExpressions
+@using AoC2024.Blazor.Extensions;
+@using AoC2024.Blazor.Models
+@using AoC2024.Blazor.Parsers.Week4
+
+@page "/Day19"
+@rendermode InteractiveServer
+
+<PageTitle>Day19</PageTitle>
+
+<h1>Linen Layout - towel arranger</h1>
+@* <p> *@
+@*     <input type="checkbox" @bind=isCalculatingA/> <label>Compute lowest A </label> *@
+@* </p> *@
+<p>
+    <label>Input</label>
+    <textarea @bind=input></textarea>
+</p>
+
+<button class="btn btn-primary" @onclick="ComputeInput">Compute</button>
+
+<p>Possible designs: <b>@possibleDesigns</b></p>
+<pre>
+    @foreach (var result in verboseResults)
+    {
+        @result
+    }
+</pre>
+
+@code {
+    private bool isCalculatingA = true;
+    private string rawInput = @"r, wr, b, g, bwu, rb, gb, br
+
+brwrr
+bggr
+gbbr
+rrbgbr
+ubwu
+bwurrg
+brgr
+bbrgwb";
+    private string input {
+        get => rawInput;
+        set {
+            rawInput = value;
+            ComputeInput();
+        }
+    }
+
+    private List<string> verboseResults = [];
+    private int possibleDesigns;
+
+    private void ComputeInput()
+    {
+        // Reset output
+        possibleDesigns = 0; verboseResults = [];
+
+        var (regex, desiredPatterns) = input.ParseAvailableTowelRegexAndDesiredPatterns();
+
+        possibleDesigns = desiredPatterns.Count(x => regex.IsMatch(x));
+        verboseResults.Add($"Regex: {regex}\n");
+        foreach (var unmatched in desiredPatterns.Where(x => !regex.IsMatch(x)))
+            verboseResults.Add(unmatched+'\n');
+    }
+}

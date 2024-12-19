@@ -1,0 +1,123 @@
+﻿@using System.Linq;
+@using System.Text
+@using System.Text.RegularExpressions
+@using AoC2024.Blazor.Extensions;
+@using AoC2024.Blazor.Models
+@using AoC2024.Blazor.Parsers.Week4
+
+@page "/Day17"
+@rendermode InteractiveServer
+
+<PageTitle>Day17</PageTitle>
+
+<h1>Chronospatial Computer - 3 bit debugger</h1>
+<p>
+    <input type="checkbox" @bind=isCalculatingA/> <label>Compute lowest A </label>
+</p>
+<p>
+    <label>Input</label>
+    <textarea @bind=input></textarea>
+</p>
+
+<button class="btn btn-primary" @onclick="ComputeInput">Compute</button>
+
+<p>Output: <b>@output</b></p>
+<pre>
+    @foreach (var result in verboseResults)
+    {
+        @result
+    }
+</pre>
+
+@code {
+    private bool isCalculatingA = true;
+    private string rawInput = @"Register A: 729
+Register B: 0
+Register C: 0
+
+Program: 0,1,5,4,3,0";
+    private string input {
+        get => rawInput;
+        set {
+            rawInput = value;
+            ComputeInput();
+        }
+    }
+
+    private List<string> verboseResults = [];
+    private string output = string.Empty;
+
+    private void ComputeInput()
+    {
+        // Reset output
+        output = string.Empty; verboseResults = [];
+
+        var (cpu, program) = input.ParseCpuAndProgram();
+        if (!isCalculatingA)
+        {
+            ComputeWithKnownA(cpu, program);
+            return;
+        }
+
+        var a = 1130397964L;
+        List<long> startingAs = [];
+        var paralelTasks = 16;
+        for(var i = 0; i < paralelTasks; i++)
+            startingAs.Add(a++);
+
+        List<(Cpu cpu, long foundA)> results = [];
+        Parallel.ForEach(startingAs, (a, state) =>
+        {
+            var (cpu, foundA) = FindLowestA(a, program, paralelTasks);
+            results.Add((cpu, foundA));
+            state.Break();
+        });
+
+        var result = results.OrderBy(x => x.foundA).First();
+        a = result.foundA;
+        
+        output = a.ToString();
+        verboseResults.Add($"Register A: {result.cpu.RegistryA}\n");
+        verboseResults.Add($"Register B: {result.cpu.RegistryB}\n");
+        verboseResults.Add($"Register C: {result.cpu.RegistryC}");
+    }
+
+    private static (Cpu, long) FindLowestA(long a, int[] program, int paralelTasks)
+    {
+        var isProgramMatching = false;
+        var cpu = new Cpu(a, 0, 0);
+        while (!isProgramMatching)
+        {
+            cpu.RegistryA = a;
+            cpu.RegistryB = 0;
+            cpu.RegistryC = 0;
+            var results = cpu.ExecuteProgram(program, true);
+            a+= paralelTasks;
+            if (results.Length != program.Length) continue;
+            
+            // Compare program to instructions
+            isProgramMatching = true;
+            for (int i = 0; i < program.Length; i++)
+            {
+                if (results[i] == program[i]) continue;
+                isProgramMatching = false;
+                break;
+            }
+
+            a--; // result was correct, revert a++
+        }
+
+        return (cpu, a);
+    }
+
+    private void ComputeWithKnownA(Cpu cpu, int[] program)
+    {
+        var results = cpu.ExecuteProgram(program);
+        
+        output = string.Join(',', results.Select(x => x.ToString()));
+        verboseResults.Add($"Register A: {cpu.RegistryA}\n");
+        verboseResults.Add($"Register B: {cpu.RegistryB}\n");
+        verboseResults.Add($"Register C: {cpu.RegistryC}");
+    }
+
+}

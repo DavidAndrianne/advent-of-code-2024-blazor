@@ -2,8 +2,10 @@
 
 public class GridCell<TVal>(int row, int col, TVal[][] grid) : CarthesianCoordinate(row, col)
 {
-    public TVal Value => grid[Row][Col];
+    public TVal? Value => IsOutsideBounds ? default : grid[Row][Col];
     public TVal[][] Grid => grid;
+
+    public bool IsOutsideBounds => Row < 0 || Col < 0 || Row >= Grid.Length || Col >= Grid.First().Length;
     
     public GridCell<TVal>? LeftCell()
     {
@@ -33,11 +35,22 @@ public class GridCell<TVal>(int row, int col, TVal[][] grid) : CarthesianCoordin
         return new(Row, col, grid);
     }
     
-    public GridCell<TVal>[] AdjacentCells()
+    public GridCell<TVal>[] AdjacentCellsWithinBounds()
     {
         GridCell<TVal>?[] adjacentCells = [AboveCell(), LeftCell(), BelowCell(), RightCell()];
         return adjacentCells.Where(c => c != null)
             .ToArray()!;
+    }
+
+    public override CarthesianCoordinate Up => new GridCell<TVal>(Row - 1, Col, Grid);
+    public override CarthesianCoordinate Down => new GridCell<TVal>(Row + 1, Col, Grid);
+    public override CarthesianCoordinate Left => new GridCell<TVal>(Row, Col - 1, Grid);
+    public override CarthesianCoordinate Right => new GridCell<TVal>(Row, Col + 1, Grid);
+
+    public GridCell<TVal>[] AdjacentCells()
+    {
+        CarthesianCoordinate[] adjacentCells = [Left, Up, Down, Right];
+        return adjacentCells.Cast<GridCell<TVal>>().ToArray();
     }
 
     public override string ToString()

@@ -1,0 +1,158 @@
+﻿@using AoC2024.Blazor.Parsers.Week3;
+@using System.Linq;
+@using System.Text
+@using System.Text.RegularExpressions
+@using AoC2024.Blazor.Extensions;
+@using AoC2024.Blazor.Models
+@using AoC2024.Blazor.Parsers.Week2
+
+@page "/Day12"
+@rendermode InteractiveServer
+
+<PageTitle>Day12</PageTitle>
+
+<h1>Plutonian Pebbles - Fence simulator</h1>
+@* <p> *@
+@*     <input type="checkbox" @bind=IsRatingDistinctHikingTrails/> <label>Rate distinct hiking trails </label> *@
+@* </p> *@
+<p>
+    <label>Input</label>
+    <textarea @bind=input></textarea>
+</p>
+
+<button class="btn btn-primary" @onclick="ComputeInput">Compute</button>
+
+<p>Fencing cost: <b>@total</b></p>
+@foreach (var fence in verboseResults)
+{
+    <AoC._2024.Blazor.Components.Grids.CharGrid Content="fence"></AoC._2024.Blazor.Components.Grids.CharGrid>
+}
+
+@code {
+    private string rawInput = @"AAAA
+BBCD
+BBCC
+EEEC";
+    private string input {
+        get => rawInput;
+        set {
+            rawInput = value;
+            ComputeInput();
+        }
+    }
+
+    private List<char[][]> verboseResults = [];
+    private double total = 0;
+
+    private void ComputeInput()
+    {
+        // Reset output
+        total = 0; verboseResults = [];
+
+        var grid = input.ParseCharGrid();
+        verboseResults.Add(grid.First().First().Grid);
+        var allCells = grid.SelectMany(row => row.Select(c => c)).ToArray();
+        var distinctSymbols = allCells.Select(c => c.Value)
+            .Distinct()
+            .ToArray();
+
+        foreach (var symbol in distinctSymbols)
+        {
+            var regions = IdentifyRegions(allCells, symbol);
+
+            foreach (var (surface, fence) in regions)
+            {
+                var cost = surface.Count * fence.Count;
+                total += cost;
+                // DrawCells(surface, fence);
+            }
+        }
+    }
+
+    private List<(List<GridCell<char>> surface, List<GridCell<char>> fence)> IdentifyRegions(GridCell<char>[] allCells, char symbol)
+    {
+        List<(List<GridCell<char>> surface, List<GridCell<char>> fence)> regions = [];
+        var surfaceCells = allCells.Where(c => c.Value == symbol).ToArray();
+        foreach (var cell in surfaceCells)
+        {
+            // match cell to region
+            bool isNewRegion = false;
+            var region = regions.FirstOrDefault(region => IsCellInRegion(cell, region));
+
+            // new region
+            if (region == default)
+            {
+                isNewRegion = true;
+                region.surface = [];
+                region.fence = [];
+            }
+
+            region.surface.Add(cell);
+            
+            var newFenceCells = cell.AdjacentCells()
+                .Where(c => IsOutsideBoundsOrValueMismatchAndNotKnownFence(c, symbol, region));
+            region.fence.AddRange(newFenceCells);
+
+            if(isNewRegion) regions.Add(region);
+        }
+
+        return MergeRegionsIfNeeded(regions);
+    }
+
+    private static List<(List<GridCell<char>> surface, List<GridCell<char>> fence)> MergeRegionsIfNeeded(List<(List<GridCell<char>> surface, List<GridCell<char>> fence)> regions)
+    {
+        List<(List<GridCell<char>> surface, List<GridCell<char>> fence)> mergedRegions = [];
+        foreach (var region in regions)
+        {
+            if (mergedRegions.Contains(region)) continue;
+            
+            var regionCells = region.surface.SelectMany(c => c.AdjacentCells());
+            var otherRegionToMerge = regions.FirstOrDefault(r => r != region && IsNeighboringRegion(r, regionCells));
+            if (otherRegionToMerge == default)
+                continue;
+            region.surface.AddRange(otherRegionToMerge.surface);
+            region.fence.AddRange(otherRegionToMerge.fence);
+            mergedRegions.Add(otherRegionToMerge);
+        }
+        regions = regions.Except(mergedRegions).ToList();
+        return mergedRegions.Any() 
+            ? MergeRegionsIfNeeded(regions)
+            : regions;
+    }
+
+    private static bool IsNeighboringRegion((List<GridCell<char>> surface, List<GridCell<char>> fence) r, IEnumerable<GridCell<char>> regionCells)
+        => r.surface.SelectMany(c => c.AdjacentCells())
+            .Any(c => regionCells.Any(rc => c.ToString() == rc.ToString()));
+
+    private static bool IsOutsideBoundsOrValueMismatchAndNotKnownFence(GridCell<char> c, char symbol, (List<GridCell<char>> surface, List<GridCell<char>> fence) region)
+        => (c.IsOutsideBounds 
+           || c.Value != symbol)
+           /*&& region.fence.All(fc => fc.ToString() != c.ToString())*/;
+
+    private bool IsCellInRegion(GridCell<char> cell, (IEnumerable<GridCell<char>> surface, IEnumerable<GridCell<char>> fence) region)
+        => region.surface.SelectMany(regionCell => regionCell.AdjacentCells())
+            .Any(adjC => adjC.ToString() == cell.ToString());
+
+    private void DrawCells(IEnumerable<GridCell<char>> cells, IEnumerable<GridCell<char>> fenceCells)
+    {
+        var minRow = cells.Select(x => x.Row).Min() - 1;
+        var maxRow = cells.Select(x => x.Row).Max() + 1;
+        var minCol = cells.Select(x => x.Col).Min() - 1;
+        var maxCol = cells.Select(x => x.Col).Max() + 1;
+        
+        // init empty grid
+        List<char[]> grid = [];
+        for(var row = minRow; row <= maxRow+1; row++)
+            grid.Add(new string('.', maxCol - minCol + 2).ToArray());
+
+        if (minRow == -1) minRow = 0;
+        if (minCol == -1) minCol = 0;
+        foreach (var cell in cells)
+            grid[cell.Row-minRow+1][cell.Col-minCol+1] = cell.Value;
+        
+        foreach(var fence in fenceCells)
+            grid[fence.Row-minRow+1][fence.Col-minCol+1] = '#';
+        
+        verboseResults.Add(grid.ToArray());
+    }
+}
